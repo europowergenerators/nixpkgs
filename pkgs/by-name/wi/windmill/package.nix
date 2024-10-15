@@ -20,17 +20,19 @@
 , rustfmt
 , stdenv
 , swagger-cli
+, flock
+, powershell
 }:
 
 let
   pname = "windmill";
-  version = "1.333.2";
+  version = "1.377.1";
 
   src = fetchFromGitHub {
     owner = "windmill-labs";
     repo = "windmill";
     rev = "v${version}";
-    hash = "sha256-QwjmkKe3jxgXQjj/+WlhOdGOXZsrYdRmHtVakoNqYtI=";
+    hash = "sha256-u0nhsrDwTFdEK/l8/PhCfbKQnYKteidkhiKHomGTruQ=";
   };
 
   pythonEnv = python3.withPackages (ps: [ ps.pip-tools ]);
@@ -42,7 +44,7 @@ let
 
     sourceRoot = "${src.name}/frontend";
 
-    npmDepsHash = "sha256-I9h2MvngsluWYaoOP44ufE82SFW+8yhNI2qQNi6oyZE=";
+    npmDepsHash = "sha256-P87z/aX+WGYbywdW+bo7Xw1SMunQ4BrxcZY7+xYzgEg=";
 
     # without these you get a
     # FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
@@ -81,12 +83,13 @@ rustPlatform.buildRustPackage {
           };
       in
       fetch_librusty_v8 {
-        version = "0.83.2";
+        # Librusty version must match crate version in cargo.lock
+        version = "0.99.0";
         shas = {
-          x86_64-linux = "sha256-RJNdy5jRZK3dTgrHsWuZZAHUyy1EogyNNuBekZ3Arrk=";
-          aarch64-linux = "sha256-mpOmuqtd7ob6xvrgH4P/6GLa/hXTS/ok0WOYo7+7ZhI=";
-          x86_64-darwin = "sha256-2o8CvJ3r5+4PLNGTySqPPDTqbU0piX4D1UtZMscMdHU=";
-          aarch64-darwin = "sha256-WHeITWSHjZxfQJndxcjsp4yIERKrKXSHFZ0UBc43p8o=";
+          x86_64-linux = "sha256-rXAxKDTDB7tU5T6tf7XQUEAbDD2PXfzU+0bgA6WOsOQ=";
+          aarch64-linux = "sha256-4V3EtxH+rGsJzam57OByLlB0D1xtnSz+1P34EfaIry4=";
+          x86_64-darwin = "sha256-fYo8B9uMS6ElPA+4A3wLQvuLH2dqar6hGhpOTvnKK7s=";
+          aarch64-darwin = "sha256-vh/fitDe3s0AoncO9nlJPNTMLQhWuJnYzFHsYdmERrU=";
         };
       };
   };
@@ -115,11 +118,8 @@ rustPlatform.buildRustPackage {
     substituteInPlace windmill-worker/src/bash_executor.rs \
       --replace '"/bin/bash"' '"${bash}/bin/bash"'
 
-    substituteInPlace windmill-api/src/lib.rs \
-      --replace 'unknown-version' 'v${version}'
-
-    substituteInPlace src/main.rs \
-      --replace 'unknown-version' 'v${version}'
+    substituteInPlace src/main.rs windmill-api/src/lib.rs windmill-common/src/utils.rs \
+      --replace-fail 'unknown-version' 'v${version}'
 
     pushd ..
 
@@ -151,12 +151,15 @@ rustPlatform.buildRustPackage {
     patchelf --set-rpath ${lib.makeLibraryPath [openssl]} $out/bin/windmill
 
     wrapProgram "$out/bin/windmill" \
-      --prefix PATH : ${lib.makeBinPath [go pythonEnv deno nsjail bash]} \
+      --prefix PATH : ${lib.makeBinPath [go pythonEnv deno nsjail bash powershell flock]} \
       --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [stdenv.cc.cc.lib]} \
       --set PYTHON_PATH "${pythonEnv}/bin/python3" \
       --set GO_PATH "${go}/bin/go" \
       --set DENO_PATH "${deno}/bin/deno" \
-      --set NSJAIL_PATH "${nsjail}/bin/nsjail"
+      --set NSJAIL_PATH "${nsjail}/bin/nsjail" \
+      --set FLOCK_PATH "${flock}/bin/flock" \
+      --set BASH_PATH "${bash}/bin/bash" \
+      --set POWERSHELL_PATH "${powershell}/bin/pwsh"
   '';
 
   meta = {
