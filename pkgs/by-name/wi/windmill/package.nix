@@ -24,19 +24,18 @@
   cairo,
   pango,
   giflib,
-  #windmill-frontend ? callPackage ./frontend.nix { },
   librusty_v8 ? callPackage ./librusty_v8.nix {
     inherit (callPackage ./fetchers.nix { }) fetchLibrustyV8;
   },
 }:
 let
   pname = "windmill";
-  version = "1.377.1";
+  version = "1.408.1";
   src = fetchFromGitHub {
     owner = "windmill-labs";
     repo = "windmill";
     rev = "v${version}";
-    hash = "sha256-u0nhsrDwTFdEK/l8/PhCfbKQnYKteidkhiKHomGTruQ=";
+    hash = "sha256-S0KWRb04Ylf1MDO4ArX9fkWw3tRUV54Py522X5vZQIs=";
   };
 
   pythonEnv = python3.withPackages (ps: [ ps.pip-tools ]);
@@ -48,7 +47,7 @@ let
 
     sourceRoot = src.name + "/frontend";
 
-    npmDepsHash = "sha256-P87z/aX+WGYbywdW+bo7Xw1SMunQ4BrxcZY7+xYzgEg=";
+    npmDepsHash = "sha256-R6tf1mrflcZfWO4poZLYQ33XfuAPoGKlsBsb23LQxtE=";
 
     # without these you get a
     # FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
@@ -87,8 +86,8 @@ rustPlatform.buildRustPackage {
   cargoLock = {
     lockFile = src + "/backend/Cargo.lock";
     outputHashes = {
-      "archiver-rs-0.5.1" = "sha256-ZIik0mMABmhdx/ullgbOrKH5GAtqcOKq5A6vB7aBSjk=";
-      "pg-embed-0.7.2" = "sha256-R/SrlzNK7aAOyXVTQ/WPkiQb6FyMg9tpsmPTsiossDY=";
+      #"archiver-rs-0.5.1" = "sha256-ZIik0mMABmhdx/ullgbOrKH5GAtqcOKq5A6vB7aBSjk=";
+      #"pg-embed-0.7.2" = "sha256-R/SrlzNK7aAOyXVTQ/WPkiQb6FyMg9tpsmPTsiossDY=";
       "php-parser-rs-0.1.3" = "sha256-ZeI3KgUPmtjlRfq6eAYveqt8Ay35gwj6B9iOQRjQa9A=";
       "progenitor-0.3.0" = "sha256-F6XRZFVIN6/HfcM8yI/PyNke45FL7jbcznIiqj22eIQ=";
       "rustpython-ast-0.3.1" = "sha256-q9N+z3F6YICQuUMp3a10OS792tCq0GiSSlkcaLxi3Gs=";

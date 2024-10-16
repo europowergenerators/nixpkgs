@@ -2,11 +2,11 @@
 { fetchLibrustyV8 }:
 fetchLibrustyV8 {
   # Librusty version must match version of crate "V8" in Cargo.lock
-  version = "0.99.0";
+  version = "0.106.0";
   shas = {
-    x86_64-linux = "sha256-rXAxKDTDB7tU5T6tf7XQUEAbDD2PXfzU+0bgA6WOsOQ=";
-    aarch64-linux = "sha256-4V3EtxH+rGsJzam57OByLlB0D1xtnSz+1P34EfaIry4=";
-    x86_64-darwin = "sha256-fYo8B9uMS6ElPA+4A3wLQvuLH2dqar6hGhpOTvnKK7s=";
-    aarch64-darwin = "sha256-vh/fitDe3s0AoncO9nlJPNTMLQhWuJnYzFHsYdmERrU=";
+    aarch64-linux = "sha256-uAkBMg6JXA+aILd8TzDtuaEdM3Axiw43Ad5tZzxNt5w=";
+    x86_64-linux = "sha256-jLYl/CJp2Z+Ut6qZlh6u+CtR8KN+ToNTB+72QnVbIKM=";
+    x86_64-darwin = "sha256-60aR0YvQT8KyacY8J3fWKZcf9vny51VUB19NVpurS/A=";
+    aarch64-darwin = "sha256-pd/I6Mclj2/r/uJTIywnolPKYzeLu1c28d/6D56vkzQ=";
   };
 }
