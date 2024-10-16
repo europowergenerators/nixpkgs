@@ -19,7 +19,12 @@
   flock,
   powershell,
   nix-update-script,
-  windmill-frontend ? callPackage ./frontend.nix { },
+  buildNpmPackage,
+  pixman,
+  cairo,
+  pango,
+  giflib,
+  #windmill-frontend ? callPackage ./frontend.nix { },
   librusty_v8 ? callPackage ./librusty_v8.nix {
     inherit (callPackage ./fetchers.nix { }) fetchLibrustyV8;
   },
@@ -35,6 +40,40 @@ let
   };
 
   pythonEnv = python3.withPackages (ps: [ ps.pip-tools ]);
+
+  frontend-build = buildNpmPackage {
+    inherit version src;
+
+    pname = "windmill-ui";
+
+    sourceRoot = src.name + "/frontend";
+
+    npmDepsHash = "sha256-P87z/aX+WGYbywdW+bo7Xw1SMunQ4BrxcZY7+xYzgEg=";
+
+    # without these you get a
+    # FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+    env.NODE_OPTIONS = "--max-old-space-size=8192";
+
+    preBuild = ''
+      npm run generate-backend-client
+    '';
+
+    buildInputs = [
+      pixman
+      cairo
+      pango
+      giflib
+    ];
+    nativeBuildInputs = [
+      python3
+      pkg-config
+    ];
+
+    installPhase = ''
+      mkdir -p $out/share
+      mv build $out/share/windmill-frontend
+    '';
+  };
 in
 rustPlatform.buildRustPackage {
   inherit pname version src;
@@ -75,7 +114,7 @@ rustPlatform.buildRustPackage {
       --replace-fail 'unknown-version' 'v${version}'
 
     mkdir -p frontend/build
-    cp -R ${windmill-frontend}/share/windmill-frontend/* frontend/build
+    cp -R ${frontend-build}/share/windmill-frontend/* frontend/build
     cp ${src}/openflow.openapi.yaml .
   '';
 
@@ -122,7 +161,8 @@ rustPlatform.buildRustPackage {
   '';
 
   passthru = {
-    updateScript = nix-update-script { };
+    updateScript = ./update/update.sh;
+    components.frontend = frontend-build;
   };
 
   meta = {
