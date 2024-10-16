@@ -1,33 +1,32 @@
-{ lib
-, rustPlatform
-, fetchFromGitHub
-, buildNpmPackage
-, bash
-, cmake
-, cairo
-, deno
-, fetchurl
-, go
-, lld
-, makeWrapper
-, nsjail
-, openssl
-, pango
-, pixman
-, giflib
-, pkg-config
-, python3
-, rustfmt
-, stdenv
-, swagger-cli
-, flock
-, powershell
+{
+  lib,
+  callPackage,
+  rustPlatform,
+  fetchFromGitHub,
+  bash,
+  cmake,
+  deno,
+  go,
+  lld,
+  makeWrapper,
+  nsjail,
+  openssl,
+  pkg-config,
+  python3,
+  rustfmt,
+  stdenv,
+  swagger-cli,
+  flock,
+  powershell,
+  nix-update-script,
+  windmill-frontend ? callPackage ./frontend.nix { },
+  librusty_v8 ? callPackage ./librusty_v8.nix {
+    inherit (callPackage ./fetchers.nix { }) fetchLibrustyV8;
+  },
 }:
-
 let
   pname = "windmill";
   version = "1.377.1";
-
   src = fetchFromGitHub {
     owner = "windmill-labs";
     repo = "windmill";
@@ -36,66 +35,18 @@ let
   };
 
   pythonEnv = python3.withPackages (ps: [ ps.pip-tools ]);
-
-  frontend-build = buildNpmPackage {
-    inherit version src;
-
-    pname = "windmill-ui";
-
-    sourceRoot = "${src.name}/frontend";
-
-    npmDepsHash = "sha256-P87z/aX+WGYbywdW+bo7Xw1SMunQ4BrxcZY7+xYzgEg=";
-
-    # without these you get a
-    # FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
-    env.NODE_OPTIONS="--max-old-space-size=8192";
-
-    preBuild = ''
-      npm run generate-backend-client
-    '';
-
-    buildInputs = [ pixman cairo pango giflib ];
-    nativeBuildInputs = [ python3 pkg-config ];
-
-    installPhase = ''
-      mkdir -p $out/share
-      mv build $out/share/windmill-frontend
-    '';
-  };
 in
 rustPlatform.buildRustPackage {
-  inherit pname version;
-  src = "${src}/backend";
+  inherit pname version src;
+  buildAndTestSubdir = "backend";
 
   env = {
     SQLX_OFFLINE = "true";
-    RUSTY_V8_ARCHIVE =
-      let
-        fetch_librusty_v8 = args:
-          fetchurl {
-            name = "librusty_v8-${args.version}";
-            url = "https://github.com/denoland/rusty_v8/releases/download/v${args.version}/librusty_v8_release_${stdenv.hostPlatform.rust.rustcTarget}.a";
-            sha256 = args.shas.${stdenv.hostPlatform.system} or (throw "Unsupported platform ${stdenv.hostPlatform.system}");
-            meta = {
-              inherit (args) version;
-              sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
-            };
-          };
-      in
-      fetch_librusty_v8 {
-        # Librusty version must match crate version in cargo.lock
-        version = "0.99.0";
-        shas = {
-          x86_64-linux = "sha256-rXAxKDTDB7tU5T6tf7XQUEAbDD2PXfzU+0bgA6WOsOQ=";
-          aarch64-linux = "sha256-4V3EtxH+rGsJzam57OByLlB0D1xtnSz+1P34EfaIry4=";
-          x86_64-darwin = "sha256-fYo8B9uMS6ElPA+4A3wLQvuLH2dqar6hGhpOTvnKK7s=";
-          aarch64-darwin = "sha256-vh/fitDe3s0AoncO9nlJPNTMLQhWuJnYzFHsYdmERrU=";
-        };
-      };
+    RUSTY_V8_ARCHIVE = librusty_v8;
   };
 
   cargoLock = {
-    lockFile = ./Cargo.lock;
+    lockFile = src + "/backend/Cargo.lock";
     outputHashes = {
       "archiver-rs-0.5.1" = "sha256-ZIik0mMABmhdx/ullgbOrKH5GAtqcOKq5A6vB7aBSjk=";
       "pg-embed-0.7.2" = "sha256-R/SrlzNK7aAOyXVTQ/WPkiQb6FyMg9tpsmPTsiossDY=";
@@ -115,19 +66,17 @@ rustPlatform.buildRustPackage {
   ];
 
   postPatch = ''
-    substituteInPlace windmill-worker/src/bash_executor.rs \
+    ln --symbolic ${src}/backend/Cargo.lock Cargo.lock
+
+    substituteInPlace backend/windmill-worker/src/bash_executor.rs \
       --replace '"/bin/bash"' '"${bash}/bin/bash"'
 
-    substituteInPlace src/main.rs windmill-api/src/lib.rs windmill-common/src/utils.rs \
+    substituteInPlace backend/src/main.rs backend/windmill-api/src/lib.rs backend/windmill-common/src/utils.rs \
       --replace-fail 'unknown-version' 'v${version}'
 
-    pushd ..
-
     mkdir -p frontend/build
-    cp -R ${frontend-build}/share/windmill-frontend/* frontend/build
+    cp -R ${windmill-frontend}/share/windmill-frontend/* frontend/build
     cp ${src}/openflow.openapi.yaml .
-
-    popd
   '';
 
   buildInputs = [
@@ -148,11 +97,21 @@ rustPlatform.buildRustPackage {
   doCheck = false;
 
   postFixup = ''
-    patchelf --set-rpath ${lib.makeLibraryPath [openssl]} $out/bin/windmill
+    patchelf --set-rpath ${lib.makeLibraryPath [ openssl ]} $out/bin/windmill
 
     wrapProgram "$out/bin/windmill" \
-      --prefix PATH : ${lib.makeBinPath [go pythonEnv deno nsjail bash powershell flock]} \
-      --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [stdenv.cc.cc.lib]} \
+      --prefix PATH : ${
+        lib.makeBinPath [
+          go
+          pythonEnv
+          deno
+          nsjail
+          bash
+          powershell
+          flock
+        ]
+      } \
+      --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ stdenv.cc.cc.lib ]} \
       --set PYTHON_PATH "${pythonEnv}/bin/python3" \
       --set GO_PATH "${go}/bin/go" \
       --set DENO_PATH "${deno}/bin/deno" \
@@ -162,14 +121,26 @@ rustPlatform.buildRustPackage {
       --set POWERSHELL_PATH "${powershell}/bin/pwsh"
   '';
 
+  passthru = {
+    updateScript = nix-update-script { };
+  };
+
   meta = {
     changelog = "https://github.com/windmill-labs/windmill/blob/${src.rev}/CHANGELOG.md";
     description = "Open-source developer platform to turn scripts into workflows and UIs";
     homepage = "https://windmill.dev";
     license = lib.licenses.agpl3Only;
-    maintainers = with lib.maintainers; [ dit7ya happysalada ];
+    maintainers = with lib.maintainers; [
+      dit7ya
+      happysalada
+    ];
     mainProgram = "windmill";
     # limited by librusty_v8
-    platforms = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+      "x86_64-darwin"
+      "aarch64-darwin"
+    ];
   };
 }

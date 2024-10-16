@@ -1,7 +1,7 @@
-diff --git a/windmill-worker/nsjail/run.python3.config.proto b/windmill-worker/nsjail/run.python3.config.proto
+diff --git a/backend/windmill-worker/nsjail/run.python3.config.proto b/backend/windmill-worker/nsjail/run.python3.config.proto
 index 9f106c23..9da2d2a8 100644
---- a/windmill-worker/nsjail/run.python3.config.proto
-+++ b/windmill-worker/nsjail/run.python3.config.proto
+--- a/backend/windmill-worker/nsjail/run.python3.config.proto
++++ b/backend/windmill-worker/nsjail/run.python3.config.proto
 @@ -27,6 +27,13 @@ mount {
  }
  

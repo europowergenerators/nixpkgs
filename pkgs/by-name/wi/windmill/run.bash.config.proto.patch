@@ -1,7 +1,7 @@
-diff --git a/windmill-worker/nsjail/run.bash.config.proto b/backend/windmill-worker/nsjail/run.bash.config.proto
+diff --git a/backend/windmill-worker/nsjail/run.bash.config.proto b/backend/windmill-worker/nsjail/run.bash.config.proto
 index e93e6b45..bbedb165 100644
---- a/windmill-worker/nsjail/run.bash.config.proto
-+++ b/windmill-worker/nsjail/run.bash.config.proto
+--- a/backend/windmill-worker/nsjail/run.bash.config.proto
++++ b/backend/windmill-worker/nsjail/run.bash.config.proto
 @@ -18,6 +18,12 @@ clone_newuser: {CLONE_NEWUSER}
  keep_caps: false
  keep_env: true

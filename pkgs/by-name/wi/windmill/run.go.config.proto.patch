@@ -1,7 +1,7 @@
-diff --git a/windmill-worker/nsjail/run.go.config.proto b/windmill-worker/nsjail/run.go.config.proto
+diff --git a/backend/windmill-worker/nsjail/run.go.config.proto b/backend/windmill-worker/nsjail/run.go.config.proto
 index 3af548d1..39ff4da7 100644
---- a/windmill-worker/nsjail/run.go.config.proto
-+++ b/windmill-worker/nsjail/run.go.config.proto
+--- a/backend/windmill-worker/nsjail/run.go.config.proto
++++ b/backend/windmill-worker/nsjail/run.go.config.proto
 @@ -25,6 +25,13 @@ mount {
  }
  
